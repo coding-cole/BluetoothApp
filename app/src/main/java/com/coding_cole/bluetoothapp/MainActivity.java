@@ -1,5 +1,6 @@
 package com.coding_cole.bluetoothapp;
 
+import android.annotation.SuppressLint;
 import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -91,7 +92,7 @@ public class MainActivity extends AppCompatActivity implements BluetoothAdapter.
 		 * connection process is taking place
 		 */
 
-		mProgress= new ProgressDialog(this);
+		mProgress = new ProgressDialog(this);
 		mProgress.setIndeterminate(true);
 		mProgress.setCancelable(false);
 	}
@@ -153,7 +154,7 @@ public class MainActivity extends AppCompatActivity implements BluetoothAdapter.
 		// add the scan option to the menu
 		getMenuInflater().inflate(R.menu.menu_main, menu);
 		// add any device we've discovered to the overflow menu
-		for (int i=0; i < mDevices.size(); i++) {
+		for (int i = 0; i < mDevices.size(); i++) {
 			BluetoothDevice device = mDevices.valueAt(i);
 			menu.add(0, mDevices.keyAt(i), 0, device.getName());
 		}
@@ -247,38 +248,42 @@ public class MainActivity extends AppCompatActivity implements BluetoothAdapter.
 		// state machine tracking
 		private int mState = 0;
 
-		private void reset() { mState = 0; }
+		private void reset() {
+			mState = 0;
+		}
 
-		private void advance() { mState++; }
+		private void advance() {
+			mState++;
+		}
 
 		/*
 		 * Send an enable command to each sensor by writing a config
 		 * characteristic. This is specific to the SensorTag to keep power
 		 * low by disableing sensors you arent using.
 		 */
-		private  void enableNextSensor(BluetoothGatt gatt) {
+		private void enableNextSensor(BluetoothGatt gatt) {
 			BluetoothGattCharacteristic characteristic;
 
 			switch (mState) {
 				case 0:
 					Log.d(TAG, "Enabling pressure cal");
 					characteristic = gatt.getService(PRESSURE_SERVICE)
-						.getCharacteristic(PRESSURE_CONFIG_CHAR);
-					characteristic.setValue(new byte[] {0x02});
+							.getCharacteristic(PRESSURE_CONFIG_CHAR);
+					characteristic.setValue(new byte[]{0x02});
 					break;
 
 				case 1:
 					Log.d(TAG, "Enabling Pressure");
 					characteristic = gatt.getService(PRESSURE_SERVICE)
-						.getCharacteristic(PRESSURE_CONFIG_CHAR);
-					characteristic.setValue(new byte[] {0x01});
+							.getCharacteristic(PRESSURE_CONFIG_CHAR);
+					characteristic.setValue(new byte[]{0x01});
 					break;
 
 				case 2:
 					Log.d(TAG, "Enabling humidity");
 					characteristic = gatt.getService(HUMIDITY_SERVICE)
-						.getCharacteristic(HUMIDITY_CONFIG_CHAR);
-					characteristic.setValue(new byte[] {0x01});
+							.getCharacteristic(HUMIDITY_CONFIG_CHAR);
+					characteristic.setValue(new byte[]{0x01});
 					break;
 
 				default:
@@ -297,19 +302,19 @@ public class MainActivity extends AppCompatActivity implements BluetoothAdapter.
 				case 0:
 					Log.d(TAG, "Reading pressure cal");
 					characteristic = gatt.getService(PRESSURE_SERVICE)
-						.getCharacteristic(PRESSURE_CAL_CHAR);
+							.getCharacteristic(PRESSURE_CAL_CHAR);
 					break;
 
 				case 1:
 					Log.d(TAG, "Reading pressure");
 					characteristic = gatt.getService(PRESSURE_SERVICE)
-						.getCharacteristic(PRESSURE_DATA_CHAR);
+							.getCharacteristic(PRESSURE_DATA_CHAR);
 					break;
 
 				case 2:
 					Log.d(TAG, "Reading humidity");
 					characteristic = gatt.getService(HUMIDITY_SERVICE)
-						.getCharacteristic(HUMIDITY_DATA_CHAR);
+							.getCharacteristic(HUMIDITY_DATA_CHAR);
 					break;
 
 				default:
@@ -330,19 +335,19 @@ public class MainActivity extends AppCompatActivity implements BluetoothAdapter.
 				case 0:
 					Log.d(TAG, "Set notify pressure cal");
 					characteristic = gatt.getService(PRESSURE_SERVICE)
-						.getCharacteristic(PRESSURE_CAL_CHAR);
+							.getCharacteristic(PRESSURE_CAL_CHAR);
 					break;
 
 				case 1:
 					Log.d(TAG, "Set notify Pressure");
 					characteristic = gatt.getService(PRESSURE_SERVICE)
-						.getCharacteristic(PRESSURE_DATA_CHAR);
+							.getCharacteristic(PRESSURE_DATA_CHAR);
 					break;
 
 				case 2:
 					Log.d(TAG, "Set notify humidity");
 					characteristic = gatt.getService(HUMIDITY_SERVICE)
-						.getCharacteristic(HUMIDITY_CONFIG_CHAR);
+							.getCharacteristic(HUMIDITY_CONFIG_CHAR);
 					break;
 
 				default:
@@ -371,11 +376,11 @@ public class MainActivity extends AppCompatActivity implements BluetoothAdapter.
 				 */
 				gatt.discoverServices();
 				mHandler.sendMessage(Message.obtain(null, MSG_PROGRESS, "Discovering Services..."));
-			} else  if (status == BluetoothGatt.GATT_SUCCESS && newState == BluetoothProfile.STATE_CONNECTED) {
+			} else if (status == BluetoothGatt.GATT_SUCCESS && newState == BluetoothProfile.STATE_CONNECTED) {
 
 				// If at any point we disconnect, send a message to clear the whether values out of the ui.
 				mHandler.sendEmptyMessage(MSG_CLEAR);
-			} else if (status !=BluetoothGatt.GATT_SUCCESS) {
+			} else if (status != BluetoothGatt.GATT_SUCCESS) {
 
 				// If there is a failure at any stage, simply disconnect.
 				gatt.disconnect();
@@ -479,7 +484,9 @@ public class MainActivity extends AppCompatActivity implements BluetoothAdapter.
 	private static final int MSG_DISMISS = 202;
 	private static final int MSG_CLEAR = 301;
 
-	private Handler mHandler = handleMessage(msg) {
+	private Handler mHandler = new Handler() {
+		@Override
+		public void handleMessage(Message msg) {
 			BluetoothGattCharacteristic characteristic;
 			switch (msg.what) {
 				case MSG_HUMIDITY:
@@ -524,24 +531,28 @@ public class MainActivity extends AppCompatActivity implements BluetoothAdapter.
 					break;
 			}
 
+		}
+
+		;
+
+		private void updateHumidityValues(BluetoothGattCharacteristic characteristic) {
+			double humidity = SensorTagData.extractHumidity(characteristic);
+			mHumidity.setText(String.format("%.0f%%", humidity));
+		}
+
+		private int[] mPressureCals;
+
+		private void updatePressureCals(BluetoothGattCharacteristic characteristic) {
+			mPressureCals = SensorTagData.extractCalibrationCoefficients(characteristic);
+		}
+
+		private void updatePressureValues(BluetoothGattCharacteristic characteristic) {
+			if (mPressureCals == null) return;
+			double pressure = SensorTagData.extractBarometer(characteristic, mPressureCals);
+			double temp = SensorTagData.extractBarTemp(characteristic, mPressureCals);
+
+			mTemperature.setText(String.format("%.1f\u0000C", temp));
+			mPressure.setText(String.format("%.2f", pressure));
+		}
 	};
-
-	private void updateHumidityValues(BluetoothGattCharacteristic characteristic) {
-		double humidity = SensorTagData.extractHumidity(characteristic);
-		mHumidity.setText(String.format("%.0f%%", humidity));
-	}
-
-	private int[] mPressureCals;
-	private void updatePressureCals(BluetoothGattCharacteristic characteristic) {
-		mPressureCals = SensorTagData.extractCalibrationCoefficients(characteristic);
-	}
-
-	private void updatePressureValues(BluetoothGattCharacteristic characteristic) {
-		if (mPressureCals == null) return;
-		double pressure = SensorTagData.extractBarometer(characteristic, mPressureCals);
-		double temp = SensorTagData.extractBarTemp(characteristic, mPressureCals);
-
-		mTemperature.setText(String.format("%.1f\u0000C", temp));
-		mPressure.setText(String.format("%.2f", pressure));
-	}
 }
